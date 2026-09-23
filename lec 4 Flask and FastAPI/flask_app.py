@@ -48,7 +48,7 @@ MODEL_VERSION = META["model_version"]
 
 app = Flask(__name__)
 
-#flask --app flask_app.py run --port 5001
+# flask --app flask_app.py --debug run --port 5001
 
 @app.route("/monday", methods=["GET"])
 def monday_endpoint():
@@ -121,7 +121,7 @@ def index():
 </head>
 <body>
   <div class="content">
-	<div class="title">Welcome to Flask Session!</div>
+	<div class="title">Welcome to Flask and Fast API Session!</div>
 	<div class="subtitle">Let's learn how to send POST request to our application.</div>
   </div>
 </body>
