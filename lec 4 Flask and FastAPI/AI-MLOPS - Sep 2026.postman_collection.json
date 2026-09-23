@@ -1,0 +1,211 @@
+{
+  "info": {
+    "_postman_id": "de5753f6-7ec2-4c05-999c-85e657bc8a88",
+    "name": "AI-MLOPS - Sep 2026",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "13079532"
+  },
+  "item": [
+    {
+      "name": "Monday GET Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5001/monday",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "monday"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Homepage GET Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5001",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Loan POST Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\"Gender\": \"Male\",\n\"Married\": \"Unmarried\",\n\"Credit_History\": \"Cleared Debts\",\n\"ApplicantIncome\": 50000,\n\"LoanAmount\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/predict/loan",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "predict",
+            "loan"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "FastAPI - Loan POST Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\"Gender\": \"Male\",\n\"Married\": \"Yes\",\n\"Credit_History\": \"Cleared Debts\",\n\"ApplicantIncome\": 50000,\n\"LoanAmount\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8001/predict/loan",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8001",
+          "path": [
+            "predict",
+            "loan"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Price POST Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"year\": 2018,\n    \"seller_type\": \"Dealer\",\n    \"km_driven\": 45000,\n    \"fuel_type\": \"Petrol\",\n    \"transmission_type\": \"Manual\",\n    \"mileage\": 18.5,\n    \"engine\": 1200,\n    \"max_power\": 85.0,\n    \"seats\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/predict/price",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "predict",
+            "price"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "FastAPI - Price POST Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"year\": 2018,\n    \"seller_type\": \"Dealer\",\n    \"km_driven\": 45000,\n    \"fuel_type\": \"Petrol\",\n    \"transmission_type\": \"Manual\",\n    \"mileage\": 18.5,\n    \"engine\": 1200,\n    \"max_power\": 85.0,\n    \"seats\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8001/predict/price",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8001",
+          "path": [
+            "predict",
+            "price"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Price POST Request - What Flask Does Not do.",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"year\": 2018,\n    \"seller_type\": \"Dealer\",\n    \"km_driven\": 45000,\n    \"fuel_type\": \"Petrol\",\n    \"transmission_type\": \"Manual\",\n    \"mileage\": 18.5,\n    \"engine\": 1200,\n    \"max_power\": 85.0\n    // \"seats\": 5\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/predict/price",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "predict",
+            "price"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

@@ -126,3 +126,120 @@ def index():
   </div>
 </body>
 </html>'''
+
+
+
+def model_pred(
+    year,
+    seller_type,
+    km_driven,
+    fuel_type,
+    transmission_type,
+    mileage,
+    engine,
+    max_power,
+    seats,
+):
+    """Resale price in lakhs for one car."""
+    # A named one-row frame rather than a bare list: the model was fitted with these
+    # column names, so a reordered or renamed feature raises instead of quietly
+    # pricing the car off the wrong columns.
+    data = pd.DataFrame(
+        [
+            [
+                float(year),
+                encode_dict["seller_type"][seller_type],
+                float(km_driven),
+                encode_dict["fuel_type"][fuel_type],
+                encode_dict["transmission_type"][transmission_type],
+                float(mileage),
+                float(engine),
+                float(max_power),
+                float(seats),
+            ]
+        ],
+        columns=PRICE_FEATURES,
+    )
+    return round(float(price_model.predict(data)[0]), 2)
+
+
+def loan_pred(Gender, Married, ApplicantIncome, LoanAmount, Credit_History):
+    """Finance pre-check for one buyer: (verdict, probability).
+
+    Returns both, because the verdict alone cannot be audited. Six months from now the
+    question is "why was this application rejected", and only the probability and the
+    cut applied to it can answer that.
+    """
+    data = pd.DataFrame(
+        [
+            [
+                loan_encode_dict["Gender"][Gender],
+                loan_encode_dict["Married"][Married],
+                float(ApplicantIncome),
+                float(LoanAmount),
+                loan_encode_dict["Credit_History"][Credit_History],
+            ]
+        ],
+        columns=LOAN_FEATURES,
+    )
+    # NOT loan_model.predict(data), which would silently mean THRESHOLD = 0.5.
+    probability = float(loan_model.predict_proba(data)[0, 1])
+    status = "Loan Approved" if probability >= THRESHOLD else "Loan Rejected"
+    return status, probability
+
+
+
+@app.route("/predict/price", methods=["POST"])
+def predict_price():
+    car = request.get_json()
+    price = model_pred(
+        car["year"],
+        car["seller_type"],
+        car["km_driven"],
+        car["fuel_type"],
+        car["transmission_type"],
+        car["mileage"],
+        car["engine"],
+        car["max_power"],
+        car["seats"],
+    )
+    return {"price_lakhs": price, "model_version": MODEL_VERSION}
+
+
+@app.route("/predict/loan", methods=["POST"])
+def predict_loan():
+    loan_req = request.get_json()
+
+    # The shape almost everyone writes the first time. Note what the `else` branches
+    # do with a value nobody anticipated: they pick a default and say nothing.
+    if loan_req["Gender"] == "Male":
+        Gender = "Male"
+    else:
+        Gender = "Female"
+
+    if loan_req["Married"] == "Unmarried":
+        Married = "No"
+    else:
+        Married = "Yes"
+
+    if loan_req["Credit_History"] == "Uncleared Debts":
+        Credit_History = "Uncleared Debts"
+    else:
+        Credit_History = "Cleared Debts"
+
+    status, probability = loan_pred(
+        Gender,
+        Married,
+        loan_req["ApplicantIncome"],
+        loan_req["LoanAmount"],
+        Credit_History,
+    )
+    # Four fields, not one. The decision is made here so that every caller gets the same
+    # one, and the basis travels with it so a caller that owns lending policy can apply
+    # its own cut without us shipping anything.
+    return {
+        "loan_approval_status": status,
+        "probability": round(probability, 4),
+        "threshold_applied": THRESHOLD,
+        "model_version": MODEL_VERSION,
+    }
