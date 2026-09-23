@@ -1,3 +1,15 @@
+"""Milepost's API, as a Flask app.
+
+    flask --app flask_app.py run --port 5001  ->  http://127.0.0.1:5001
+
+Everything this service needs is in this one file: the encoding dictionaries, the
+artifact loading, the two prediction functions and the routes. Part 1 of the notebook
+has to have run first, because that is what puts the .joblib files in artifacts/.
+
+Nothing validates the incoming JSON. That is not an oversight -- it is the whole
+point of Part 4.
+"""
+
 import json
 import os
 from pathlib import Path
@@ -38,95 +50,40 @@ PRICE_FEATURES = [
 ]
 LOAN_FEATURES = ["Gender", "Married", "ApplicantIncome", "LoanAmount", "Credit_History"]
 
+# A module body runs exactly once per Python process, so these loads happen at import
+# time and never again, no matter how many requests follow. Four worker processes means
+# four copies of these objects in RAM -- see Part 8.
+_missing = [
+    n
+    for n in ("price_model.joblib", "loan_model.joblib", "model_meta.json")
+    if not (ARTIFACTS / n).exists()
+]
+if _missing:
+    raise FileNotFoundError(
+        f"artifacts/ is missing {_missing}. Run Part 1 of the notebook before starting this."
+    )
 
 price_model = joblib.load(ARTIFACTS / "price_model.joblib")
 loan_model = joblib.load(ARTIFACTS / "loan_model.joblib")
 META = json.loads((ARTIFACTS / "model_meta.json").read_text())
 
+# `predict()` would call anything at probability >= 0.5 approved. That 0.5 is not a
+# default anybody chose -- it is where argmax over two columns happens to flip.
+#
+# The number could live in several places. sklearn's FixedThresholdClassifier would
+# wrap the estimator and pickle the cut INSIDE the .joblib; it could come from an env
+# var; at scale it belongs to a decision service that owns lending policy outright.
+# It lives beside the artifact here because that keeps it readable without unpickling
+# and versioned with the model that calibrated it. See Part 5.
+#
+# What matters more than the choice: there is no fallback. A missing threshold raises
+# on this line, at import, so the process never serves a single request with a number
+# nobody chose -- the container stays unready and the previous one keeps serving.
 THRESHOLD = META["decision_threshold"]
+if not 0.0 < THRESHOLD < 1.0:
+    raise ValueError(f"decision_threshold {THRESHOLD!r} is not a probability")
+
 MODEL_VERSION = META["model_version"]
-
-app = Flask(__name__)
-
-# flask --app flask_app.py --debug run --port 5001
-
-@app.route("/monday", methods=["GET"])
-def monday_endpoint():
-    return "No!!! It is Monday!"
-
-#@app.route("/", methods=["GET"])
-#def index():
-#    # Return a string and Flask sends it as HTML. Return a dict and it sends JSON.
-#    return """
-#<!DOCTYPE html>
-#<html lang="en">
-#<head><meta charset="UTF-8"><title>Milepost API</title>
-#<style>
-#  body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0;
-#         display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-#  code { background: #1e293b; padding: 2px 6px; border-radius: 4px; }
-#</style></head>
-#<body><div>
-#  <h1>Milepost API</h1>
-#  <p>POST JSON to <code>/predict/price</code> or <code>/predict/loan</code>.</p>
-#</div></body>
-#</html>
-#"""
-
-@app.route('/', methods=['GET'])
-def index():
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibrant Animation</title>
-  <style>
-	body {
-	  margin: 0;
-	  padding: 0;
-	  background: linear-gradient(45deg, #ff0066, #ffcc00, #33cc33, #0099ff);
-	  background-size: 600% 600%;
-	  animation: gradientAnimation 16s ease infinite;
-	  font-family: 'Arial', sans-serif;
-	  display: flex;
-	  justify-content: center;
-	  align-items: center;
-	  height: 100vh;
-	  color: white;
-	}
-	@keyframes gradientAnimation {
-	  0% { background-position: 0% 50%; }
-	  50% { background-position: 100% 50%; }
-	  100% { background-position: 0% 50%; }
-	}
-	.content {
-	  text-align: center;
-	}
-	.title {
-	  font-size: 3em;
-	  margin-bottom: 20px;
-	  animation: fadeIn 2s ease backwards;
-	}
-	.subtitle {
-	  font-size: 1.5em;
-	  animation: fadeIn 3s ease backwards;
-	}
-	@keyframes fadeIn {
-	  from { opacity: 0; transform: translateY(20px); }
-	  to { opacity: 1; transform: translateY(0px); }
-	}
-  </style>
-</head>
-<body>
-  <div class="content">
-	<div class="title">Welcome to Flask and Fast API Session!</div>
-	<div class="subtitle">Let's learn how to send POST request to our application.</div>
-  </div>
-</body>
-</html>'''
-
 
 
 def model_pred(
@@ -188,6 +145,60 @@ def loan_pred(Gender, Married, ApplicantIncome, LoanAmount, Credit_History):
     return status, probability
 
 
+app = Flask(__name__)
+
+
+@app.route("/", methods=["GET"])
+def index():
+    # Return a string and Flask sends it as HTML. Return a dict and it sends JSON.
+    return """
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Milepost API</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0;
+         display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  code { background: #1e293b; padding: 2px 6px; border-radius: 4px; }
+</style></head>
+<body><div>
+  <h1>Milepost API</h1>
+  <p>POST JSON to <code>/predict/price</code> or <code>/predict/loan</code>.</p>
+</div></body>
+</html>
+"""
+
+
+@app.route("/monday", methods=["GET"])
+def monday_endpoint():
+    return "No!!! It is Monday!"
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    # `return {"status": "ok"}` is the most common health endpoint in production and it
+    # answers a question nobody asked. This process can be listening on the port while
+    # the artifacts are missing, truncated, or unpicklable under a scikit-learn that
+    # renamed an attribute -- and a bare "ok" would keep saying yes through all of it.
+    #
+    # So prove the thing the caller actually depends on: score a fixed canary and report
+    # the versions. A dict return value becomes JSON for free; a (dict, status) tuple
+    # lets the orchestrator stop routing traffic here.
+    try:
+        canary = model_pred(2018, "Dealer", 45000, "Petrol", "Manual", 18.5, 1200, 85.0, 5)
+        loan_pred("Male", "No", 5000, 128, "Cleared Debts")
+    except Exception as exc:
+        return {"status": "unhealthy", "reason": f"{type(exc).__name__}: {exc}"}, 503
+
+    return {
+        "status": "ok",
+        "models": ["price", "loan"],
+        "canary_price_lakhs": canary,
+        "decision_threshold": THRESHOLD,
+        "model_version": MODEL_VERSION,
+        "sklearn_version": sklearn.__version__,
+        "sklearn_version_at_train": META["sklearn_version"],
+    }
+
 
 @app.route("/predict/price", methods=["POST"])
 def predict_price():
@@ -204,6 +215,32 @@ def predict_price():
         car["seats"],
     )
     return {"price_lakhs": price, "model_version": MODEL_VERSION}
+
+
+@app.route("/predict/price/batch", methods=["POST"])
+def predict_price_batch():
+    # The overnight job does not want one car, it wants tomorrow's whole list. Written
+    # the obvious way: a loop over the body, one model call per car. Note there is no
+    # guard on the length and no check that the elements are cars -- a list with one bad
+    # element does the work for everything before it and then raises.
+    cars = request.get_json()
+    return {
+        "prices_lakhs": [
+            model_pred(
+                c["year"],
+                c["seller_type"],
+                c["km_driven"],
+                c["fuel_type"],
+                c["transmission_type"],
+                c["mileage"],
+                c["engine"],
+                c["max_power"],
+                c["seats"],
+            )
+            for c in cars
+        ],
+        "model_version": MODEL_VERSION,
+    }
 
 
 @app.route("/predict/loan", methods=["POST"])
