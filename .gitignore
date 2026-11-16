@@ -2,3 +2,4 @@
 __pycache__/
 .pytest_cache/
 lec12 Sagemaker-1/aws_config.cfg
+lec17 Sagemaker Model Registry/aws_config.cfg
